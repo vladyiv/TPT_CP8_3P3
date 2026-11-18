@@ -1,8 +1,4 @@
-﻿using System;
-using System.Buffers.Text;
-using System.Collections.Generic;
-using System.Net.Http.Json;
-using System.Text;
+﻿using System.Net.Http.Json;
 
 namespace PetstoreService
 {
@@ -19,11 +15,15 @@ namespace PetstoreService
         {
             return await _client.PostAsJsonAsync($"{BaseUrl}/user/createWithList", users);
         }
+        public async Task<HttpResponseMessage> CreateUsersWithArrayAsync(List<User> users)
+        {
+            return await _client.PostAsJsonAsync($"{BaseUrl}/user/createWithArray", users);
+        }
         public async Task<HttpResponseMessage> GetByUsernameAsync(string username)
         {
             return await _client.GetAsync($"{BaseUrl}/user/{username}");
         }
-        public async Task<HttpResponseMessage> PostAsync(User user)
+        public async Task<HttpResponseMessage> CreateUserAsync(User user)
         {
             return await _client.PostAsJsonAsync<User>($"{BaseUrl}/user", user);
         }
