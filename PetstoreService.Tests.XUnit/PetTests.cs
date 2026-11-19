@@ -1,22 +1,17 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-namespace PetstoreService
-{    public class PetTests
-    {
-        private HttpClient _httpClient;
-        private PetRepository _service;
 
-        [SetUp]
-        public void Setup()
+namespace PetstoreService
+{
+    public class PetTests
+    {
+        private readonly HttpClient _httpClient;
+        private readonly PetRepository _service;
+
+        public PetTests()
         {
             _httpClient = new HttpClient();
             _service = new PetRepository(_httpClient);
-        }
-
-        [TearDown]
-        public void TearDown()
-        {
-            _httpClient.Dispose();
         }
 
         private static Pet CreateTestPet()
@@ -33,148 +28,137 @@ namespace PetstoreService
             };
         }
 
-        [Test]
+        // не знаю, ставить ли настройки перед и после yield (создание и автоматическое удаление)
+
+        [Fact]
         public async Task PostImagePet_Pos()
         {
             Pet pet = CreateTestPet();
+
             string filePath = "../../../../dog_image.jpg";
             byte[] imageBytes = await File.ReadAllBytesAsync(filePath);
             string fileName = Path.GetFileName(filePath);
 
             HttpResponseMessage response = await _service.UploadImageAsync(pet.Id, imageBytes, fileName);
-
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
-        [Test]
+        [Fact]
         public async Task PostImagePet_Neg()
         {
             Pet pet = CreateTestPet();
             HttpResponseMessage response = await _service.GetUploadImageAsync(pet.Id);
-
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task PostPet_Pos()
         {
             Pet pet = CreateTestPet();
-
             HttpResponseMessage response = await _service.CreatePetAsync(pet);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             HttpResponseMessage getResponse = await _service.GetByIdAsync(pet.Id);
-            Pet? fetchedPet = await getResponse.Content.ReadFromJsonAsync<Pet>();
-
-            Assert.That(fetchedPet?.Name, Is.EqualTo(pet.Name));
-
-            await _service.DeleteAsync(pet.Id);
+            Pet fetchedPet = await getResponse.Content.ReadFromJsonAsync<Pet>();
+            Assert.Equal(pet.Name, fetchedPet.Name);
         }
 
-        [Test]
+        [Fact]
         public async Task PostPet_Neg()
         {
-            HttpResponseMessage response = await _service.CreatePetAsync(null!);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            HttpResponseMessage response = await _service.CreatePetAsync(null);
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
 
-        [Test]
+        [Fact]
         public async Task PutPet_Pos()
         {
             Pet pet = CreateTestPet();
             await _service.CreatePetAsync(pet);
-
             pet.Name = "Not Ranmaru";
+
             HttpResponseMessage response = await _service.UpdateAsync(pet);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             HttpResponseMessage getResponse = await _service.GetByIdAsync(pet.Id);
-            Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
 
-            Pet? newPet = await getResponse.Content.ReadFromJsonAsync<Pet>();
-
-            Assert.That(newPet?.Name, Is.EqualTo("Not Ranmaru"));
+            Pet newPet = await getResponse.Content.ReadFromJsonAsync<Pet>();
+            Assert.Equal("Not Ranmaru", newPet.Name);
         }
 
-        [Test]
+        [Fact]
         public async Task PutPet_Neg()
         {
-            HttpResponseMessage response = await _service.UpdateAsync(null!);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            HttpResponseMessage response = await _service.UpdateAsync(null);
+            Assert.Equal(response.StatusCode, HttpStatusCode.MethodNotAllowed);
         }
 
-        [Test]
+        [Fact]
         public async Task GetByStatusPet_Pos()
         {
             Pet pet = CreateTestPet();
-
             HttpResponseMessage response = await _service.GetByStatusAsync(pet.Status);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            List<Pet>? pets = await response.Content.ReadFromJsonAsync<List<Pet>>();
-            Assert.That(pets, Is.Not.Null);
-            Assert.That(pets, Is.Not.Empty);
+            List<Pet> pets = await response.Content.ReadFromJsonAsync<List<Pet>>();
+            Assert.NotEmpty(pets);
         }
 
-        [Test]
+        [Fact]
         public async Task GetByStatusPet_Neg()
         {
             HttpResponseMessage response = await _service.GetByStatusAsync("new_status");
-            List<Pet>? pets = await response.Content.ReadFromJsonAsync<List<Pet>>();
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            Assert.That(pets, Is.Not.Null);
-            Assert.That(pets, Is.Empty);
+            List<Pet> pets = await response.Content.ReadFromJsonAsync<List<Pet>>();
+            Assert.Empty(pets);
         }
 
-        [Test]
+        [Fact]
         public async Task GetByIdPet_Pos()
         {
             Pet pet = CreateTestPet();
             await _service.CreatePetAsync(pet);
-
             HttpResponseMessage response = await _service.GetByIdAsync(pet.Id);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            Pet? fetchedPet = await response.Content.ReadFromJsonAsync<Pet>();
-            Assert.That(fetchedPet?.Id, Is.EqualTo(pet.Id));
-            Assert.That(fetchedPet?.Name, Is.EqualTo(pet.Name));
+            Pet petJson = await response.Content.ReadFromJsonAsync<Pet>();
+            Assert.Equal(pet.Id, petJson.Id);
+            Assert.Equal(pet.Name, petJson.Name);
         }
 
-        [Test]
+        [Fact]
         public async Task GetByIdPet_Neg()
         {
             int randomId = Random.Shared.Next(1, int.MaxValue);
             HttpResponseMessage response = await _service.GetByIdAsync(randomId);
-
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Test]
+        [Fact]
         public async Task PutFormPet_Pos()
         {
             Pet pet = CreateTestPet();
-
             await _service.CreatePetAsync(pet);
             HttpResponseMessage response = await _service.UpdateWithFormAsync(pet.Id, "Not Ranmaru", "sold");
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             HttpResponseMessage getResponse = await _service.GetByIdAsync(pet.Id);
-            Pet? updatedPet = await getResponse.Content.ReadFromJsonAsync<Pet>();
+            Pet updatedPet = await getResponse.Content.ReadFromJsonAsync<Pet>();
 
-            Assert.That(updatedPet?.Name, Is.EqualTo("Not Ranmaru"));
-            Assert.That(updatedPet?.Status, Is.EqualTo("sold"));
+            Assert.Equal("Not Ranmaru", updatedPet?.Name);
+            Assert.Equal("sold", updatedPet?.Status);
         }
 
-        [Test]
+        [Fact]
         public async Task PutFormPet_Neg()
         {
-            int randomId = Random.Shared.Next(1, int.MaxValue);
+            long randomId = Random.Shared.Next(1, int.MaxValue);
             HttpResponseMessage response = await _service.UpdateWithFormAsync(randomId, "New");
-
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Test]
+        [Fact]
         public async Task DeletePet_Pos()
         {
             Pet pet = CreateTestPet();
@@ -182,20 +166,17 @@ namespace PetstoreService
             await _service.CreatePetAsync(pet);
 
             HttpResponseMessage response = await _service.DeleteAsync(id);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             HttpResponseMessage getResponse = await _service.GetByIdAsync(id);
-            Assert.That(getResponse.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
         }
 
-        [Test]
-        public async Task DeletePet_Neg()
-        {
+        [Fact]
+        public async Task DeletePet_Neg()        {
             int randomId = Random.Shared.Next(1, int.MaxValue);
             HttpResponseMessage response = await _service.DeleteAsync(randomId);
-
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
     }
-
 }

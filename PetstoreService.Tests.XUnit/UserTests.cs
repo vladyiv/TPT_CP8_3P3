@@ -1,30 +1,25 @@
 ﻿using System.Net;
+using System.Net.Http.Json;
+
 namespace PetstoreService
 {
-    [TestFixture]
     public class UserTests
     {
-        private HttpClient _httpClient;
-        private UserRepository _service;
-               
-        [SetUp]
-        public void Setup()
+        private readonly HttpClient _httpClient;
+        private readonly UserRepository _service;
+
+        public UserTests()
         {
             _httpClient = new HttpClient();
             _service = new UserRepository(_httpClient);
         }
-        [TearDown]
-        public async Task TearDown()
-        {
-            _httpClient.Dispose();
-        }            
 
         private static User CreateTestUser()
         {
-            string username = $"user_{Random.Shared.Next(0, 999999)}";
+            string username = $"user_{Random.Shared.Next(1, int.MaxValue)}";
             return new User()
             {
-                Id = Random.Shared.Next(0, 999999),
+                Id = Random.Shared.Next(1, int.MaxValue),
                 Username = "vlada",
                 FirstName = "Vlada",
                 LastName = "I.",
@@ -35,136 +30,138 @@ namespace PetstoreService
             };
         }
 
-        [Test]
+        [Fact]
         public async Task PostListUser_Pos()
         {
             List<User> usersList = new List<User> { CreateTestUser() };
             HttpResponseMessage response = await _service.CreateUsersWithListAsync(usersList);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task PostListUser_Neg()
         {
             HttpResponseMessage response = await _service.CreateUsersWithListAsync(null);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task GetByUsernameUser_Pos()
         {
             User user = CreateTestUser();
             await _service.CreateUserAsync(user);
             HttpResponseMessage response = await _service.GetByUsernameAsync(user.Username);
-            Assert.That(response, Is.Not.Null);
+            Assert.NotNull(response);
         }
-
-        [Test]
+        [Fact]
         public async Task GetByUsernameUser_Neg()
         {
+            User user = CreateTestUser();
             string username = CreateTestUser().Username;
             await _service.DeleteAsync(username);
             HttpResponseMessage response = await _service.GetByUsernameAsync(username);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
-        [Test]
+        [Fact]
         public async Task PutUser_Pos()
         {
             User user = CreateTestUser();
             string username = user.Username;
             user.FirstName = "Not Vlada";
             HttpResponseMessage response = await _service.PutUserAsync(username, user);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            HttpResponseMessage getResponse = await _service.GetByUsernameAsync(username);
+            User getUser = await getResponse.Content.ReadFromJsonAsync<User>();
+            Assert.Equal(user.FirstName, getUser.FirstName);
         }
 
-        [Test]
+        [Fact]
         public async Task PutUser_Neg()
         {
             User user = CreateTestUser();
             string username = user.Username;
             HttpResponseMessage response = await _service.PutUserAsync(username, null);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
 
-        [Test]
+        [Fact]
         public async Task DeleteUser_Pos()
         {
             User user = CreateTestUser();
             await _service.CreateUserAsync(user);
             string username = user.Username;
             HttpResponseMessage response = await _service.DeleteAsync(username);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task DeleteUser_Neg()
         {
             string username = ".";
             HttpResponseMessage response = await _service.DeleteAsync(username);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task GetLoginUser_Pos()
         {
             User user = CreateTestUser();
             await _service.CreateUserAsync(user);
             HttpResponseMessage response = await _service.LoginAsync(user.Username, user.Password);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
-        [Test]
+        [Fact]
         public async Task GetLoginUser_Neg()
         {
             User user = CreateTestUser();
             await _service.CreateUserAsync(user);
             HttpResponseMessage response = await _service.LoginAsync(user.Username, "wrong_password");
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task GetLogoutUser_Pos()
         {
             HttpResponseMessage response = await _service.LogoutAsync();
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
 
-        [Test]
+        [Fact]
         public async Task GetLogoutUser_Neg()
         {
             HttpResponseMessage response = await _service.PostLogoutAsync();
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task PostArrayUser_Pos()
         {
             List<User> usersList = new List<User> { CreateTestUser() };
             HttpResponseMessage response = await _service.CreateUsersWithArrayAsync(usersList);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task PostArrayUser_Neg()
         {
             HttpResponseMessage response = await _service.CreateUsersWithArrayAsync(null);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
-
-        [Test]
+        [Fact]
         public async Task PostUser_Pos()
         {
             User user = CreateTestUser();
+            string username = user.Username;
             HttpResponseMessage response = await _service.CreateUserAsync(user);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        }
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        [Test]
+            HttpResponseMessage getResponse = await _service.GetByUsernameAsync(username);
+            User getUser = await getResponse.Content.ReadFromJsonAsync<User>();
+            Assert.Equal(user.FirstName, getUser.FirstName);
+        }
+        [Fact]
         public async Task PostUser_Neg()
         {
-            HttpResponseMessage response = await _service.CreateUsersWithListAsync(null);
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.MethodNotAllowed));
+            HttpResponseMessage response = await _service.CreateUserAsync(null);
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
     }
 }
+
+

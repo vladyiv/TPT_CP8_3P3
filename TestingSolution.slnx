@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Элементы решения/">
+    <File Path="dog_image.jpg" />
+  </Folder>
+  <Project Path="PetstoreService.Tests.NUnit/UserService.Tests.NUnit.csproj" />
+  <Project Path="PetstoreService.Tests.XUnit/PetstoreService.Tests.XUnit.csproj" />
+  <Project Path="PetstoreService/PetstoreService.csproj" />
+</Solution>

@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\PetstoreService\PetstoreService.csproj" />
     <ProjectReference Include="..\UserService\PetstoreService.csproj" />
   </ItemGroup>
 
